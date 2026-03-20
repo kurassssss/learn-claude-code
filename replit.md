@@ -1,8 +1,8 @@
-# Workspace
+# KRAK Swarm Intelligence
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Ultra-advanced swarm intelligence trading system dashboard with 25 RL engines, 1000 autonomous bots, self-healing engine, parameter mutation, and Telegram bridge.
 
 ## Stack
 
@@ -14,83 +14,85 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
+
+## Architecture
+
+### 25 RL Engine Cluster
+Engines 01–25: PPO, A3C, DQN, SAC, TD3, APEX, PHANTOM, STORM, ORACLE, VENOM, TITAN, HYDRA, VOID, PULSE, INFINITY, NEMESIS, SOVEREIGN, WRAITH, ABYSS, GENESIS, MIRAGE, ECLIPSE, CHIMERA, AXIOM, GODMIND
+
+- GODMIND has triple-weighted veto authority
+- NEMESIS and TITAN have adversarial/macro veto
+- Consensus threshold: 13/25 standard, 18/25 STRONG, 22/25 ABSOLUTE
+
+### 1000 Autonomous Bots (Swarm)
+Each bot tracks: PnL, win rate, trades, strategy, health score, generation, fitness
+
+### Self-Healing Engine (Omega)
+- XP-based reward system
+- 25 healing strategies
+- AST-level code repair
+- Circuit breakers per module
+- Error tracking with severity levels
+
+### Parameter Mutation System
+- Genetic algorithm mutations
+- MAP-Elites quality-diversity search
+- Elite strategy archive (20 niches × regimes)
+- Mutation history tracking
+
+### Telegram Bridge
+- Config: bot token + chat ID
+- Notification toggles: consensus, errors, mutations, heals
+- Manual message push
 
 ## Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+artifacts/
+├── api-server/          # Express API server (all KRAK routes)
+│   └── src/routes/
+│       ├── health.ts    # GET /api/healthz
+│       └── swarm.ts     # All KRAK API endpoints
+└── krak-swarm/          # React + Vite frontend dashboard
+    └── src/pages/
+        ├── dashboard.tsx   # Swarm overview + consensus
+        ├── engines.tsx     # 25 RL engines management
+        ├── bots.tsx        # 1000 bot listing
+        ├── mutations.tsx   # Genetic mutations + MAP-Elites
+        ├── healing.tsx     # Self-healing status
+        └── telegram.tsx    # Telegram bridge config
+lib/
+├── api-spec/openapi.yaml   # Full OpenAPI spec for all KRAK APIs
+├── api-client-react/       # Generated React Query hooks
+├── api-zod/                # Generated Zod schemas
+└── db/src/schema/krak.ts   # All DB tables (engines, bots, mutations, errors, etc.)
 ```
 
-## TypeScript & Composite Projects
+## API Endpoints
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- `GET /api/swarm/status` — overall swarm metrics
+- `GET /api/swarm/consensus` — current engine consensus (STRONG_BUY/SELL/etc)
+- `GET /api/swarm/bots` — paginated bot list with filters
+- `GET/PATCH /api/engines/:id` — engine details + parameter mutation
+- `POST /api/engines/:id/reset` — reset engine to defaults
+- `POST /api/mutations/run` — trigger genetic/MAP-Elites mutation cycle
+- `GET /api/mutations/history` — mutation history
+- `GET /api/mutations/elite` — MAP-Elites best strategies
+- `GET /api/healing/status` — XP level, heal rates, module health
+- `GET /api/healing/errors` — error log with severity
+- `GET /api/healing/actions` — heal action log
+- `POST /api/healing/trigger` — manually trigger heal
+- `GET/PUT /api/telegram/config` — Telegram bridge config
+- `POST /api/telegram/push` — push message to Telegram
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Database Schema
 
-## Root Scripts
+Tables: `engines`, `bots`, `mutations`, `elite_strategies`, `omega_errors`, `heal_actions`, `telegram_config`, `swarm_metrics`
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Dev Commands
 
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- `pnpm --filter @workspace/api-server run dev` — API server
+- `pnpm --filter @workspace/krak-swarm run dev` — Frontend
+- `pnpm --filter @workspace/api-spec run codegen` — Regenerate API types
+- `pnpm --filter @workspace/db run push` — Push DB schema changes

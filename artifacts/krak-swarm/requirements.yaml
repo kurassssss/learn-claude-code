@@ -1,0 +1,14 @@
+packages:
+  "recharts": "For rendering data visualizations and consensus gauges"
+  "framer-motion": "For page transitions and interactive micro-animations"
+  "date-fns": "For formatting timestamps"
+
+images:
+  - path: "artifacts/krak-swarm/public/images/cyber-bg.png"
+    description: "Dark cyberpunk terminal background with subtle glowing grid lines, deep blacks and faint cyan/neon green light leaks, highly abstract and minimal"
+    aspect_ratio: "16:9"
+
+notes:
+  - API requests are handled by the pre-generated hooks in @workspace/api-client-react
+  - Dashboard polling is implemented via TanStack Query's refetchInterval feature
+  - Standard shadcn components are assumed to be available in src/components/ui/

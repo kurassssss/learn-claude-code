@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "KRAK Swarm Intelligence"
+version = "1.0.0"
+id = "artifacts/krak-swarm"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18792
+
+[services.development]
+run = "pnpm --filter @workspace/krak-swarm run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/krak-swarm", "run", "build" ]
+publicDir = "artifacts/krak-swarm/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18792"
+BASE_PATH = "/"

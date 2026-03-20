@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KRAK Swarm Intelligence API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: swarm
+    description: Swarm intelligence operations
+  - name: engines
+    description: RL engine management
+  - name: mutations
+    description: Parameter mutation and evolution
+  - name: healing
+    description: Self-healing operations
+  - name: telegram
+    description: Telegram bridge operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,310 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /swarm/status:
+    get:
+      operationId: getSwarmStatus
+      tags: [swarm]
+      summary: Get overall swarm status
+      responses:
+        "200":
+          description: Swarm status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwarmStatus"
+
+  /swarm/consensus:
+    get:
+      operationId: getSwarmConsensus
+      tags: [swarm]
+      summary: Get current consensus decision
+      responses:
+        "200":
+          description: Consensus result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsensusResult"
+
+  /swarm/bots:
+    get:
+      operationId: listBots
+      tags: [swarm]
+      summary: List all bots in the swarm
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, idle, crashed, healing]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of bots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotList"
+
+  /engines:
+    get:
+      operationId: listEngines
+      tags: [engines]
+      summary: List all 25 RL engines
+      responses:
+        "200":
+          description: Engine list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineList"
+
+  /engines/{engineId}:
+    get:
+      operationId: getEngine
+      tags: [engines]
+      summary: Get engine details
+      parameters:
+        - name: engineId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Engine details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engine"
+    patch:
+      operationId: updateEngineParams
+      tags: [engines]
+      summary: Update engine parameters (mutate)
+      parameters:
+        - name: engineId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EngineParamUpdate"
+      responses:
+        "200":
+          description: Updated engine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engine"
+
+  /engines/{engineId}/reset:
+    post:
+      operationId: resetEngine
+      tags: [engines]
+      summary: Reset engine to defaults
+      parameters:
+        - name: engineId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Engine reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engine"
+
+  /mutations/run:
+    post:
+      operationId: runMutation
+      tags: [mutations]
+      summary: Trigger a mutation cycle across the swarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MutationRequest"
+      responses:
+        "200":
+          description: Mutation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+
+  /mutations/history:
+    get:
+      operationId: getMutationHistory
+      tags: [mutations]
+      summary: Get mutation history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Mutation history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationHistory"
+
+  /mutations/elite:
+    get:
+      operationId: getEliteStrategies
+      tags: [mutations]
+      summary: Get MAP-Elites best strategies
+      responses:
+        "200":
+          description: Elite strategies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EliteStrategyList"
+
+  /healing/status:
+    get:
+      operationId: getHealingStatus
+      tags: [healing]
+      summary: Get self-healing system status
+      responses:
+        "200":
+          description: Healing status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealingStatus"
+
+  /healing/errors:
+    get:
+      operationId: listErrors
+      tags: [healing]
+      summary: List recent errors
+      parameters:
+        - name: resolved
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Error list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorList"
+
+  /healing/actions:
+    get:
+      operationId: listHealActions
+      tags: [healing]
+      summary: List heal actions taken
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Heal actions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealActionList"
+
+  /healing/trigger:
+    post:
+      operationId: triggerHeal
+      tags: [healing]
+      summary: Manually trigger a healing cycle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealRequest"
+      responses:
+        "200":
+          description: Heal result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealResponse"
+
+  /telegram/config:
+    get:
+      operationId: getTelegramConfig
+      tags: [telegram]
+      summary: Get Telegram bridge configuration
+      responses:
+        "200":
+          description: Telegram config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramConfig"
+    put:
+      operationId: updateTelegramConfig
+      tags: [telegram]
+      summary: Update Telegram bridge configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramConfigUpdate"
+      responses:
+        "200":
+          description: Updated config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramConfig"
+
+  /telegram/push:
+    post:
+      operationId: pushTelegramMessage
+      tags: [telegram]
+      summary: Push a message to Telegram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramPushRequest"
+      responses:
+        "200":
+          description: Push result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramPushResult"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +343,591 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    SwarmStatus:
+      type: object
+      properties:
+        totalBots:
+          type: integer
+        activeBots:
+          type: integer
+        idleBots:
+          type: integer
+        crashedBots:
+          type: integer
+        healingBots:
+          type: integer
+        totalPnl:
+          type: number
+        winRate:
+          type: number
+        uptime:
+          type: number
+        consensusThreshold:
+          type: integer
+        activeEngines:
+          type: integer
+        healthScore:
+          type: number
+        xpLevel:
+          type: integer
+        totalXp:
+          type: integer
+        lastUpdate:
+          type: string
+      required:
+        - totalBots
+        - activeBots
+        - idleBots
+        - crashedBots
+        - healingBots
+        - totalPnl
+        - winRate
+        - uptime
+        - consensusThreshold
+        - activeEngines
+        - healthScore
+        - xpLevel
+        - totalXp
+        - lastUpdate
+
+    ConsensusResult:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL]
+        votes:
+          type: integer
+        requiredVotes:
+          type: integer
+        confidence:
+          type: number
+        dominantRegime:
+          type: string
+        engineVotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EngineVote"
+        timestamp:
+          type: string
+      required:
+        - action
+        - votes
+        - requiredVotes
+        - confidence
+        - dominantRegime
+        - engineVotes
+        - timestamp
+
+    EngineVote:
+      type: object
+      properties:
+        engineId:
+          type: string
+        engineName:
+          type: string
+        vote:
+          type: string
+        confidence:
+          type: number
+        weight:
+          type: number
+      required: [engineId, engineName, vote, confidence, weight]
+
+    BotList:
+      type: object
+      properties:
+        bots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bot"
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+      required: [bots, total, offset, limit]
+
+    Bot:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, idle, crashed, healing]
+        pnl:
+          type: number
+        winRate:
+          type: number
+        trades:
+          type: integer
+        strategy:
+          type: string
+        healthScore:
+          type: number
+        generation:
+          type: integer
+        fitness:
+          type: number
+        lastActivity:
+          type: string
+      required:
+        - id
+        - name
+        - status
+        - pnl
+        - winRate
+        - trades
+        - strategy
+        - healthScore
+        - generation
+        - fitness
+        - lastActivity
+
+    EngineList:
+      type: object
+      properties:
+        engines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Engine"
+        total:
+          type: integer
+      required: [engines, total]
+
+    Engine:
+      type: object
+      properties:
+        id:
+          type: string
+        engineNumber:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, idle, training, error]
+        winRate:
+          type: number
+        totalReward:
+          type: number
+        epsilon:
+          type: number
+        learningRate:
+          type: number
+        gamma:
+          type: number
+        batchSize:
+          type: integer
+        bufferCap:
+          type: integer
+        entropyBonus:
+          type: number
+        explorationRate:
+          type: number
+        lastAction:
+          type: string
+        lastActionTs:
+          type: string
+        tradesCount:
+          type: integer
+        hasVeto:
+          type: boolean
+        vetoWeight:
+          type: number
+      required:
+        - id
+        - engineNumber
+        - name
+        - type
+        - description
+        - status
+        - winRate
+        - totalReward
+        - epsilon
+        - learningRate
+        - gamma
+        - batchSize
+        - bufferCap
+        - entropyBonus
+        - explorationRate
+        - lastAction
+        - lastActionTs
+        - tradesCount
+        - hasVeto
+        - vetoWeight
+
+    EngineParamUpdate:
+      type: object
+      properties:
+        learningRate:
+          type: number
+        gamma:
+          type: number
+        epsilon:
+          type: number
+        batchSize:
+          type: integer
+        bufferCap:
+          type: integer
+        entropyBonus:
+          type: number
+        explorationRate:
+          type: number
+
+    MutationRequest:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [genetic, map_elites, random, guided]
+          default: genetic
+        mutationRate:
+          type: number
+          default: 0.1
+        populationSize:
+          type: integer
+          default: 10
+        targetEngines:
+          type: array
+          items:
+            type: string
+      required: [strategy]
+
+    MutationResult:
+      type: object
+      properties:
+        id:
+          type: string
+        strategy:
+          type: string
+        mutationsApplied:
+          type: integer
+        improved:
+          type: integer
+        degraded:
+          type: integer
+        unchanged:
+          type: integer
+        bestFitnessDelta:
+          type: number
+        averageFitnessDelta:
+          type: number
+        timestamp:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: "#/components/schemas/MutationDetail"
+      required:
+        - id
+        - strategy
+        - mutationsApplied
+        - improved
+        - degraded
+        - unchanged
+        - bestFitnessDelta
+        - averageFitnessDelta
+        - timestamp
+        - details
+
+    MutationDetail:
+      type: object
+      properties:
+        engineId:
+          type: string
+        engineName:
+          type: string
+        paramName:
+          type: string
+        oldValue:
+          type: number
+        newValue:
+          type: number
+        fitnessDelta:
+          type: number
+        accepted:
+          type: boolean
+      required:
+        - engineId
+        - engineName
+        - paramName
+        - oldValue
+        - newValue
+        - fitnessDelta
+        - accepted
+
+    MutationHistory:
+      type: object
+      properties:
+        mutations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MutationResult"
+        total:
+          type: integer
+      required: [mutations, total]
+
+    EliteStrategyList:
+      type: object
+      properties:
+        elites:
+          type: array
+          items:
+            $ref: "#/components/schemas/EliteStrategy"
+        total:
+          type: integer
+      required: [elites, total]
+
+    EliteStrategy:
+      type: object
+      properties:
+        id:
+          type: string
+        niche:
+          type: string
+        regime:
+          type: string
+        fitness:
+          type: number
+        params:
+          type: object
+          additionalProperties:
+            type: number
+        discoveredAt:
+          type: string
+        timesSelected:
+          type: integer
+      required: [id, niche, regime, fitness, params, discoveredAt, timesSelected]
+
+    HealingStatus:
+      type: object
+      properties:
+        xpLevel:
+          type: integer
+        totalXp:
+          type: integer
+        xpToNextLevel:
+          type: integer
+        totalErrors:
+          type: integer
+        resolvedErrors:
+          type: integer
+        unresolvedErrors:
+          type: integer
+        totalHeals:
+          type: integer
+        successfulHeals:
+          type: integer
+        healSuccessRate:
+          type: number
+        activeCircuitBreakers:
+          type: integer
+        modulesMonitored:
+          type: integer
+        lastHealTs:
+          type: string
+      required:
+        - xpLevel
+        - totalXp
+        - xpToNextLevel
+        - totalErrors
+        - resolvedErrors
+        - unresolvedErrors
+        - totalHeals
+        - successfulHeals
+        - healSuccessRate
+        - activeCircuitBreakers
+        - modulesMonitored
+        - lastHealTs
+
+    ErrorList:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/OmegaError"
+        total:
+          type: integer
+      required: [errors, total]
+
+    OmegaError:
+      type: object
+      properties:
+        id:
+          type: string
+        ts:
+          type: number
+        message:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+        module:
+          type: string
+        resolved:
+          type: boolean
+        fixAttempts:
+          type: integer
+        resolutionBy:
+          type: string
+      required:
+        - id
+        - ts
+        - message
+        - category
+        - severity
+        - module
+        - resolved
+        - fixAttempts
+        - resolutionBy
+
+    HealActionList:
+      type: object
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealAction"
+        total:
+          type: integer
+      required: [actions, total]
+
+    HealAction:
+      type: object
+      properties:
+        id:
+          type: string
+        ts:
+          type: number
+        errorId:
+          type: string
+        strategy:
+          type: string
+        module:
+          type: string
+        result:
+          type: string
+        durationS:
+          type: number
+        details:
+          type: string
+        xpEarned:
+          type: integer
+      required:
+        - id
+        - ts
+        - errorId
+        - strategy
+        - module
+        - result
+        - durationS
+        - details
+        - xpEarned
+
+    HealRequest:
+      type: object
+      properties:
+        module:
+          type: string
+        errorId:
+          type: string
+        strategy:
+          type: string
+      required: [module]
+
+    HealResponse:
+      type: object
+      properties:
+        result:
+          type: string
+        strategy:
+          type: string
+        xpEarned:
+          type: integer
+        details:
+          type: string
+      required: [result, strategy, xpEarned, details]
+
+    TelegramConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        chatId:
+          type: string
+        botToken:
+          type: string
+        notifyOnConsensus:
+          type: boolean
+        notifyOnError:
+          type: boolean
+        notifyOnMutation:
+          type: boolean
+        notifyOnHeal:
+          type: boolean
+        minSeverity:
+          type: string
+      required:
+        - enabled
+        - chatId
+        - botToken
+        - notifyOnConsensus
+        - notifyOnError
+        - notifyOnMutation
+        - notifyOnHeal
+        - minSeverity
+
+    TelegramConfigUpdate:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        chatId:
+          type: string
+        botToken:
+          type: string
+        notifyOnConsensus:
+          type: boolean
+        notifyOnError:
+          type: boolean
+        notifyOnMutation:
+          type: boolean
+        notifyOnHeal:
+          type: boolean
+        minSeverity:
+          type: string
+
+    TelegramPushRequest:
+      type: object
+      properties:
+        message:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high, critical]
+          default: normal
+      required: [message]
+
+    TelegramPushResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        messageId:
+          type: string
+        timestamp:
+          type: string
+      required: [success, timestamp]
