@@ -104,6 +104,46 @@ export const telegramConfigTable = pgTable("telegram_config", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const liveTicksTable = pgTable("live_ticks", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull().unique(),
+  priceMedian: real("price_median").notNull().default(0),
+  priceMin: real("price_min").notNull().default(0),
+  priceMax: real("price_max").notNull().default(0),
+  priceSpreadEx: real("price_spread_ex").notNull().default(0),
+  priceChange24h: real("price_change_24h").notNull().default(0),
+  totalVolume24h: real("total_volume_24h").notNull().default(0),
+  avgFundingRate: real("avg_funding_rate").notNull().default(0),
+  totalOi: real("total_oi").notNull().default(0),
+  oiDelta1h: real("oi_delta_1h").notNull().default(0),
+  avgObImbalance: real("avg_ob_imbalance").notNull().default(0),
+  cumulativeCvd: real("cumulative_cvd").notNull().default(0),
+  nExchanges: integer("n_exchanges").notNull().default(0),
+  rawTicks: jsonb("raw_ticks").notNull().default({}),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const systemConfigTable = pgTable("system_config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const paperTradesTable = pgTable("paper_trades", {
+  id: text("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  side: text("side").notNull(),
+  quantity: real("quantity").notNull().default(0),
+  entryPrice: real("entry_price").notNull().default(0),
+  exitPrice: real("exit_price").notNull().default(0),
+  pnl: real("pnl").notNull().default(0),
+  pnlPct: real("pnl_pct").notNull().default(0),
+  status: text("status").notNull().default("open"),
+  engine: text("engine").notNull().default("GODMIND"),
+  openedAt: timestamp("opened_at").notNull().defaultNow(),
+  closedAt: timestamp("closed_at"),
+});
+
 export const swarmMetricsTable = pgTable("swarm_metrics", {
   id: serial("id").primaryKey(),
   totalPnl: real("total_pnl").notNull().default(0),
@@ -136,3 +176,13 @@ export type OmegaError = typeof errorsTable.$inferSelect;
 export const insertHealActionSchema = createInsertSchema(healActionsTable);
 export type InsertHealAction = z.infer<typeof insertHealActionSchema>;
 export type HealAction = typeof healActionsTable.$inferSelect;
+
+export const insertLiveTickSchema = createInsertSchema(liveTicksTable);
+export type InsertLiveTick = z.infer<typeof insertLiveTickSchema>;
+export type LiveTick = typeof liveTicksTable.$inferSelect;
+
+export const insertPaperTradeSchema = createInsertSchema(paperTradesTable);
+export type InsertPaperTrade = z.infer<typeof insertPaperTradeSchema>;
+export type PaperTrade = typeof paperTradesTable.$inferSelect;
+
+export type SystemConfig = typeof systemConfigTable.$inferSelect;
